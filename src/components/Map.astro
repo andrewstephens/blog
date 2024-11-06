@@ -1,0 +1,5 @@
+---
+import LeafletMap from "./jsx/LeafletMap.jsx";
+const { lat, lng } = Astro.props;
+---
+<LeafletMap lat={lat} lng={lng} width="100%" height="400px" zoom={12} client:only="react" />

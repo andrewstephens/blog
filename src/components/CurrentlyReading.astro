@@ -1,0 +1,46 @@
+---
+const API_KEY = import.meta.env.HARDCOVER_API_KEY;
+const HARDCOVER_API_KEY = 'Bearer ' + API_KEY;
+ 
+const query = `
+{
+    me {
+      user_books(where: {status_id: {_eq: 2}}) {
+        rating
+        book {
+          title
+          subtitle
+          images {
+            id
+            url
+          }
+        }
+      }
+    }
+  }`;
+
+const resp = await fetch('https://api.hardcover.app/v1/graphql', {
+    headers: {
+        'content-type': 'application/json',
+        authorization: HARDCOVER_API_KEY,
+    },
+    body: JSON.stringify({ query }),
+    method: 'POST',
+});
+const data = await resp.json();
+if (!data.data) {
+    console.error(data);
+    throw new Error('Failed to fetch data from Hardcover API');
+}
+
+const bookTitle = data.data.me[0].user_books[0].book.title;
+const bookImage = data.data.me[0].user_books[0].book.images[0].url;
+---
+
+<div>
+    <h2>Currently Reading</h2>
+    <div>
+        <img src={bookImage} alt={bookTitle} />
+        <h3>{bookTitle}</h3>
+    </div>
+</div>

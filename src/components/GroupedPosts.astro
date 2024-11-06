@@ -1,0 +1,77 @@
+---
+// Helper function to group posts by year
+function groupPostsByYear(posts) {
+    return posts.reduce((acc, post) => {
+        const year = new Date(post.data.pubDate).getFullYear();
+        if (!acc[year]) {
+            acc[year] = [];
+        }
+        acc[year].push(post);
+        return acc;
+    }, {});
+}
+
+// Fetch and process posts
+const { posts, isMainWritings } = Astro.props;
+
+// Sort posts by date descending
+const sortedPosts = posts.sort((a, b) => 
+    new Date(b.data.pubDate) - new Date(a.data.pubDate)
+);
+
+// Group posts by year
+const postsByYear = groupPostsByYear(sortedPosts);
+
+// Sort years in descending order
+const years = Object.keys(postsByYear).sort((a, b) => b - a);
+---
+<div>
+    {years.map((year) => (
+        <section class="year-section">
+            <h2>{year}</h2>
+            <div class="posts">
+                {postsByYear[year].map((post) => (
+                    <li><a href={isMainWritings ? `/writings/${post.slug}` : post.slug}>{post.data.title}</a></li>
+                ))}
+            </div>
+        </section>
+    ))}
+</div>
+
+<style>    
+    .year-section {
+        margin-bottom: 2rem;
+    }
+    
+    .posts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-top: 1rem;
+    }
+    
+    .post-card {
+        padding: 1.5rem;
+        border: 1px solid #eaeaea;
+        border-radius: 8px;
+        transition: transform 0.2s;
+    }
+    
+    .post-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    h2 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+    
+    h3 {
+        margin: 0 0 0.5rem 0;
+    }
+    
+    time {
+        color: #666;
+        font-size: 0.9rem;
+    }
+</style>

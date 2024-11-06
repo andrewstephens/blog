@@ -1,0 +1,85 @@
+---
+title: 'User Activation and Touch Events'
+pubDate: 2023-12-02
+description: 'A "bug" that was driving me crazy turns out to be a feature.'
+author: 'Andrew'
+# image:
+#     url: "https://docs.astro.build/default-og-image.png"
+#     alt: "The word astro against an illustration of planets and stars."
+tags: ["JavaScript", "learning in public"]
+---
+
+import { Image } from 'astro:assets';
+import safariBlog from '/public/images/blog/user-activation-and-touch-events/safari-blog.png';
+import htmlSpec from '/public/images/blog/user-activation-and-touch-events/html-spec.png';
+
+## How it began
+I was assigned a task to fix a "bug" in our code that was causing people to have to click a audio play button 
+twice on mobile devices in order to get it to actually play. I started by looking at the code that handled playing the audio file. It looked
+fairly standared. It was a click event listener written in jQuery that looked something like:
+
+```js
+element.on('click touchstart', function() {
+  // play audio
+  audio.src = 'example-audio-file.mp3';
+  audio.load();
+  audio.play();
+})
+```
+
+I'm only a little familiar with the audio APIs, but right away I made a note to check if we were dealing with promises. Then, I started by setting a 
+breakpoint on and in the event listener handler so I could see the callstack and step through the code. Once I got into the handler, I confirmed that, yes,
+the `audio.play()` method did return a promise. So, that wasn't being handled correctly yet, but it shouldn't cause the audio not to play. After stepping through
+the handler a bit more, I didn't notice anything that would cause the audio not to play. So, changed the handler to async and put the audio methods into a `try/catch`
+block to see if I was getting any uncaught issues. I was. 
+
+> NotAllowedError: The request is not allowed by the user agent or the platform in the current context, possibly because the user denied permission.
+
+Using that error as a place to start from, I began Googling to see if others had run into the issue and what their fixes might have been. The "fixes" were all over the place.
+Some of the possible fixes included:
+- Load the audio in one user interaction, then play it with a second interaction. 
+- Change the audio to be an ArrayBuffer.
+- Set the `autoplay` and `muted` attributes on the audio element to true, then pause and play the audio you want.
+- Play silent audio that is Base64 encoded on initial user interaction (like scrolling), then when the play button is tapped, replace the source with the correct audio
+- Add the `playsinline` attribute to the audio element
+- And much more...
+
+I tried all of those with the exception of the ArrayBuffer and none of them totally solved my problem. The closest I was able to come was setting a new event listener on the window
+like this:
+
+```javascript
+window.addEventListener('touchstart', (e) => {
+    const correctElementsToTarget = e.target.closest('.parent-class') || e.target.closest('.other-parent-class');
+    if (!correctElementsToTarget) return;
+
+    audio.muted = true;
+    audio.play().then(() => audio.pause());
+    audio.muted = false;
+
+    // ...
+});
+```
+
+This very hacky fix would activate when the user touched the screen in the general area of the audio player, but do so silently so it was ready when the actual play
+button was pressed. This was not great and I knew it. It was a temporary bandaid. So, I continued to look at the problem, trying different things, but I would
+always get that `NotAllowedError` which made no sense since the audio api wasn't being called until the `touchstart` event was fired. That was surely a user interaction
+and should qualify as such... right?
+
+NOPE.
+
+After trying all these other methods, I started to look at the actual event that was being triggered. So, I refined my Googling to include user interaction and `touchstart`. 
+Within a few minutes I came across this article: [https://webkit.org/blog/13862/the-user-activation-api/](https://webkit.org/blog/13862/the-user-activation-api/). A little ways into it I came across this:
+
+<Image src={safariBlog} alt="Safari Blog" />
+
+As you can see, `touchstart` isn't considered a trusted user interaction. Only `touchend`. I was cautiously optimistic, but I wanted to double check, so I consulted the HTML
+spec as well: [https://html.spec.whatwg.org/#activation-triggering-input-event](https://html.spec.whatwg.org/#activation-triggering-input-event). Sure enough, the blog was right:
+
+<Image src={htmlSpec} alt="HTML Spec" />
+
+I went back to my code and replaced all the instances of `touchstart` with `touchend`, removed the hacky code, and pushed it to dev. I pulled out my phone and
+et voilà! It was working. Tried it in Safari... worked. Chrome... worked. iPad.. worked in both browsers I tested with. I was bemused to say the least. But, that's how
+it often goes in programming. You search high and low for a solution. Nothing seems to work. No one seems to have any answers, then you find out it's something so
+simple - a semicolon out of place, a typo, or in this case, a user interaction event that wasn't trusted. A bug that turned out to be a feature. 
+
+I hope this blog helps someone avoid the same headaches I had while trying to figure this one out. 

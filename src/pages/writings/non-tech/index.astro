@@ -1,0 +1,13 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import GroupedPosts from "../../../components/GroupedPosts.astro";
+const allPosts = await getCollection("writings", ({ id }) => {
+  return id.startsWith('non-tech/');
+});
+const pageTitle = "Non-Tech Writings";
+---
+
+<BaseLayout pageTitle={pageTitle}>
+  <GroupedPosts posts={allPosts} isMainWritings={false}/>
+</BaseLayout>
