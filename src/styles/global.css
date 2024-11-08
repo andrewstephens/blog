@@ -39,52 +39,64 @@ h1, h2, h3, h4, h5, h6 {
   isolation: isolate;
 }
 
-  html {
-    background-color: white;
-    font-family: Georgia, serif;
-    color: #301800;
-  }
-  
-  html.dark {
-    background-color: #21202e;
-    color: #fff;
-  }
-  
-  .dark .nav-links a:is(:hover, :focus, :visited) {
-    color: #fff;
-  }
+html {
+  background-color: white;
+  font-family: Georgia, serif;
+  color: #301800;
+}
 
-  .dark a {
-    color: #ff9776;
-  }
+html.dark {
+  background-color: #21202e;
+  color: #fff;
+}
 
-  body {
-    margin: 0 auto;
-    width: 100%;
-    max-width: 100ch;
-    padding: 1rem;
-    line-height: 1.5;
-  }
+.dark .nav-links a:is(:hover, :focus, :visited) {
+  color: #fff;
+}
 
-  pre.astro-code {
-    padding: 12px;
-  }
-  
-  h1 {
-    margin: 1rem 0;
-    font-size: 2.25rem;
-    font-weight: 500;
-  }
+.dark a {
+  color: #ffa916;
+}
 
-  p {
-    line-height: 2rem;
-    font-size: 1.1rem;
-    margin: 1.2rem 0;
-  }
+code:not(pre code) {
+  padding: 2px 4px;
+  border-radius: 3px;
+  color: #fff;
+  background: #ffa916;
+}
 
-  a {
-    color: #21202e;
-  }
+.dark code:not(pre code) {
+  color: #21202e;
+  background: #ffa916;
+}
+
+body {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 100ch;
+  padding: 1rem;
+  line-height: 1.5;
+  font-size: 1.1rem;
+}
+
+pre.astro-code {
+  padding: 12px;
+}
+
+h1 {
+  margin: 1rem 0;
+  font-size: 2.25rem;
+  font-weight: 500;
+}
+
+p {
+  line-height: 1.8rem;
+  margin: 1.2rem 0;
+}
+
+a {
+  color: #21202e;
+}
 
 /* Main Content */
 .main-content img {
@@ -104,7 +116,7 @@ h1, h2, h3, h4, h5, h6 {
   width: 40px;
   height: 5px;
   margin-bottom: 10px;
-  background-color: #ff9776;
+  background-color: #ffa916;
 }
 
 .nav-links {
@@ -127,7 +139,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .nav-links a:hover,
 .nav-links a:focus {
-  background-color: #ff9776;
+  background-color: #ffa916;
 }
 
 .expanded {

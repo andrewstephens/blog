@@ -1,0 +1,113 @@
+---
+title: 'Tracking Internet Outages with Go'
+pubDate: 2024-11-02
+description: 'Getting some hard data on my internet outages.'
+author: 'Andrew'
+# image:
+#     url: "https://docs.astro.build/default-og-image.png"
+#     alt: "The word astro against an illustration of planets and stars."
+tags: ["go", "learning in public", "diy"]
+---
+
+## Version 1
+Earlier this year, I switched from Spectrum intenet to ATT Fiber. I was hestiant to make the switch due to ATT's reputation in my area, but I'd heard
+that the fiber service was much better than their older intenet offerings, so I decided to give it a shot. For the first couple months, everything was 
+wonderful. The speeds were great - 1000mbps up and down - and it seemed rock solid. But, then I started noticing apps disconnecting on my computer. Icons
+would grey out for a second, then come back. It was usually fast - off and back on within seconds - but it began to happen more frequently. Songs I'd be 
+streaming would grey out, then come back, almost flickering sometimes from the disconnects. While it wasn't impacting my work directly (yet), it was annyoying,
+so I decided I needed to start logging the outages - both to see if there was a pattern and to have some hard data to give to the ISP if it continued.
+
+Of course, I could manually log each outage with pen and paper, but I'm a programmer, so of course I decided to automate it. I debated for a bit on what language
+to use. Any number of them would have work, but I'd been learning Go this year and this gave me a nice small project to work on. That decided, I just had to figure 
+out the best way to detect that the internet was down. Do I simply ping a server? Do a HTTP request periodically with a short timeout? Check packets at a lower level?
+
+For my first version, I decided to just do a simple request to `google.com` every 10 seconds and write the results to a log file. It was a very simple program that just 
+used the standard library for part of the process. I added custom flags so that I could change the interval, the log file, and whether to print the results to `STDOUT` or not.
+After that, I made a simple infinite `for` loop that would check the connection and log the status based on the results of the request.
+
+The log file was very simple, but got across the information I was trying to convery to the ISP. It was just a date and time and a status message:
+```txt
+2024/08/25 10:47:23 Internet connection lost
+2024/08/25 10:47:43 Internet connection restored
+2024/08/25 11:04:44 Internet connection lost
+2024/08/25 11:04:54 Internet connection restored
+2024/08/25 11:20:22 Internet connection lost
+2024/08/25 11:20:48 Internet connection restored
+2024/08/25 11:31:53 Internet connection restored
+2024/08/25 11:35:42 Internet connection lost
+2024/08/25 11:36:02 Internet connection restored
+```
+
+The full implementation is only 69 lines of code, but it's been very helpful seeing the amount of disconnects happening.
+
+```go
+package main
+
+import (
+	"flag"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"time"
+)
+
+const (
+	defaultCheckInterval = 10
+	defaultLogFile       = "connection_log.txt"
+	testURL              = "http://www.google.com"
+)
+
+func main() {
+	intervalPtr := flag.Int("interval", defaultCheckInterval, "Check interval in seconds")
+	flag.IntVar(intervalPtr, "i", defaultCheckInterval, "Check interval in seconds (shorthand)")
+
+	logFilePtr := flag.String("logfile", defaultLogFile, "Log file path")
+	flag.StringVar(logFilePtr, "l", defaultLogFile, "Log file path (shorthand)")
+
+	printOutputPtr := flag.Bool("print", false, "Print output to console")
+	flag.BoolVar(printOutputPtr, "p", false, "Print output to console (shorthand)")
+
+	flag.Parse()
+
+	checkInterval := time.Duration(*intervalPtr) * time.Second
+
+	file, err := os.OpenFile(*logFilePtr, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	logger := log.New(file, "", log.LstdFlags)
+
+	if *printOutputPtr {
+		fmt.Printf("Monitoring internet connection. Check interval: %v, Log file: %s\n", checkInterval, *logFilePtr)
+	}
+
+	var lastStatus bool
+	for {
+		connected := checkConnection()
+
+		if !connected && lastStatus {
+			logger.Println("Internet connection lost")
+
+			if *printOutputPtr {
+				fmt.Println("Internet connection lost")
+			}
+		} else if connected && !lastStatus {
+			logger.Println("Internet connection restored")
+			if *printOutputPtr {
+				fmt.Println("Internet connection restored")
+			}
+		}
+
+		lastStatus = connected
+		time.Sleep(checkInterval)
+	}
+}
+
+func checkConnection() bool {
+	_, err := http.Get(testURL)
+	return err == nil
+}
+```

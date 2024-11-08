@@ -9,6 +9,7 @@ const query = `
         rating
         book {
           title
+          slug
           subtitle
           images {
             id
@@ -35,12 +36,15 @@ if (!data.data) {
 
 const bookTitle = data.data.me[0].user_books[0].book.title;
 const bookImage = data.data.me[0].user_books[0].book.images[0].url;
+const bookSlug = data.data.me[0].user_books[0].book.slug;
 ---
 
 <div>
     <h2>Currently Reading</h2>
     <div>
+      <a href={`https://hardcover.app/books/${bookSlug}`} target="_blank">
         <img src={bookImage} alt={bookTitle} />
         <h3>{bookTitle}</h3>
+      </a>
     </div>
 </div>
